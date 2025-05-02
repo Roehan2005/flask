@@ -1,0 +1,6 @@
+postgres_host: "localhost"
+postgres_user: "postgres"
+postgres_password: "Roehan@123"
+postgres_db: "postgres"
+secret_key: "roehan$secure123"
+
