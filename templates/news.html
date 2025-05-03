@@ -43,11 +43,11 @@
             <tbody>
                 {% for items in values %}
                 <tr>
-                    <td> {{items[0]}} </td>
-                    <td> {{items[1]}} </td>
-                    <td> {{items[2]}} </td>
-                    <td> {{items[3]}} </td>
-                    <td> {{items[4]}} </td>
+                    <td> {{ items.date_of_news }} </td>
+                    <td> {{ items.title }} </td>
+                    <td> {{ items.related_company }} </td>
+                    <td> {{ items.sector }} </td>
+                    <td> {{ items.sources }} </td>
                 </tr>
                 {% endfor %}
             </tbody>
