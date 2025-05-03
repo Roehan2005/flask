@@ -378,7 +378,6 @@ GROUP BY date_of_news, title, related_company, C.sector;
         cur.execute(query, [company])
 
     rv = cur.fetchall()
-    print(rv)
     conn.close()
     return render_template('news.html', values=rv)
 
