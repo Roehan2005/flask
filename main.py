@@ -78,41 +78,41 @@ def portfolio():
 
     # Query for stock suggestion
     query_suggestions = '''
-    SELECT symbol, EPS, ROE, book_value, rsi, adx, pe_ratio, macd 
-    FROM company_price
-    INNER JOIN fundamental_averaged USING (symbol)
-    INNER JOIN technical_signals USING (symbol)
-    INNER JOIN company_profile USING (symbol)
-    WHERE EPS > 25 AND ROE > 13 AND book_value > 100 AND rsi > 50 AND adx > 23 AND pe_ratio < 35 AND macd = 'bull'
-    ORDER BY symbol
+  select * from company_price
+natural join fundamental_averaged
+natural join technical_signals
+natural join company_profile 
+where 
+EPS>25 and roe>13 and 
+book_value > 100 and
+rsi>50 and adx >23 and
+pe_ratio < 35 and
+macd = 'bull'
+order by symbol;
     '''
     cur.execute(query_suggestions)
     suggestions = cur.fetchall()
 
     # Query on EPS
     query_eps = '''
-    SELECT symbol, ltp, eps 
-    FROM fundamental_averaged
-    WHERE eps > 30
-    ORDER BY eps
+    select * from fundamental_averaged
+where eps > 30;
     '''
     cur.execute(query_eps)
     eps = cur.fetchall()
 
     # Query on PE Ratio
     query_pe = '''
-    SELECT symbol, ltp, pe_ratio 
-    FROM fundamental_averaged
-    WHERE pe_ratio < 30
+    select * from fundamental_averaged
+where pe_ratio <30;
     '''
     cur.execute(query_pe)
     pe = cur.fetchall()
 
     # Query on technical signals
     query_technical = '''
-    SELECT * 
-    FROM technical_signals
-    WHERE ADX > 23 AND rsi > 50 AND rsi < 70 AND MACD = 'bull'
+    select * from technical_signals
+where ADX > 23 and rsi>50 and rsi<70 and MACD = 'bull';
     '''
     cur.execute(query_technical)
     technical = cur.fetchall()
@@ -175,10 +175,10 @@ def add_watchlist():
 
     # Query for companies (for dropdown menu) excluding those already in watchlist
     query_companies = '''
-    SELECT symbol FROM company_profile
-    WHERE symbol NOT IN (
-        SELECT symbol FROM watchlist WHERE username = %s
-    )
+   SELECT symbol from company_profile
+where symbol not in
+(select symbol from watchlist
+where username = 'rewan');
     '''
     user = [session['user']]
     cur.execute(query_companies, user)
@@ -203,9 +203,8 @@ def current_price(company='all'):
 
     if company == 'all':
         query = '''
-        SELECT symbol, LTP, PC, ROUND((LTP-PC), 2) AS CH, ROUND(((LTP-PC)/PC)*100, 2) AS CH_percent 
-        FROM company_price
-        ORDER BY symbol
+        SELECT symbol, LTP, PC, round((LTP-PC)::numeric, 2) as CH, round(((LTP-PC)/PC)::numeric*100, 2) AS CH_percent FROM company_price
+order by symbol;
         '''
         cur.execute(query)
     else:
@@ -231,10 +230,11 @@ def fundamental_report(company='all'):
         cur.execute(query)
     else:
         query = '''
-        SELECT F.symbol, report_as_of, LTP, eps, roe, book_value, ROUND(LTP/eps, 2) AS pe_ratio
-        FROM fundamental_report F
-        INNER JOIN company_price C ON F.symbol = C.symbol
-        WHERE F.symbol = %s
+       select F.symbol, report_as_of, LTP, eps, roe, book_value, round(LTP/eps)::numeric, 2) as pe_ratio
+from fundamental_report F
+inner join company_price C
+on F.symbol = C.symbol
+where F.symbol = 'BIH';
         '''
         cur.execute(query, [company])
 
@@ -250,10 +250,10 @@ def technical_analysis(company='all'):
 
     if company == 'all':
         query = '''
-        SELECT A.symbol, sector, LTP, volume, RSI, ADX, MACD 
-        FROM technical_signals A 
-        LEFT JOIN company_profile B ON A.symbol = B.symbol
-        ORDER BY A.symbol
+        select A.symbol, sector, LTP, volume, RSI, ADX, MACD from technical_signals A 
+left join company_profile B
+on A.symbol = B.symbol
+order by (A.symbol);
         '''
         cur.execute(query)
     else:
@@ -271,10 +271,15 @@ def company_profile(company='all'):
     cur = conn.cursor()
 
     if company == 'all':
-        query = '''SELECT * FROM company_profile ORDER BY symbol'''
+        query = '''
+select * from company_profile
+order by(symbol);'''
         cur.execute(query)
     else:
-        query = '''SELECT * FROM company_profile WHERE symbol = %s'''
+        query = '''SELECT symbol from company_profile
+where symbol not in
+(select symbol from watchlist
+where username = 'rewan');'''
         cur.execute(query, [company])
 
     rv = cur.fetchall()
@@ -308,11 +313,10 @@ def watchlist():
     cur = conn.cursor()
 
     query_watchlist = '''
-    SELECT symbol, LTP, PC, ROUND((LTP-PC), 2) AS CH, ROUND(((LTP-PC)/PC)*100, 2) AS CH_percent 
-    FROM watchlist
-    NATURAL JOIN company_price
-    WHERE username = %s
-    ORDER BY symbol
+   select symbol, LTP, PC, round((LTP-PC)::numeric, 2) AS CH, round((((LTP-PC)/PC)*100)::numeric, 2) AS CH_percent from watchlist
+natural join company_price
+where username = 'suman'
+order by (symbol);
     '''
     cur.execute(query_watchlist, [session['user']])
     watchlist = cur.fetchall()
@@ -330,10 +334,14 @@ def holdings():
     cur = conn.cursor()
 
     query_holdings = '''
-    SELECT A.symbol, A.quantity, B.LTP, ROUND(A.quantity * B.LTP, 2) AS current_value 
-    FROM holdings_view A
-    INNER JOIN company_price B ON A.symbol = B.symbol
-    WHERE username = %s
+    select C.sector, sum(A.quantity*B.LTP) as current_value 
+from holdings_view A
+inner join company_price B
+on A.symbol = B.symbol
+inner join company_profile C
+on A.symbol = C.symbol
+where username = 'rewan'
+group by C.sector;
     '''
     cur.execute(query_holdings, [session['user']])
     holdings = cur.fetchall()
@@ -349,10 +357,16 @@ def news(company='all'):
 
     if company == 'all':
         query = '''
-        SELECT date_of_news, title, related_company, C.sector, STRING_AGG(sources, ', ') AS sources 
-        FROM news N
-        INNER JOIN company_profile C ON N.related_company = C.symbol
-        GROUP BY title, date_of_news, related_company, C.sector
+        SELECT 
+    N.date_of_news, 
+    title, 
+    related_company, 
+    C.sector, 
+    STRING_AGG(sources, ', ') AS sources
+FROM news N
+INNER JOIN company_profile C
+ON N.related_company = C.symbol
+GROUP BY date_of_news, title, related_company, C.sector;
         '''
         cur.execute(query)
     else:
@@ -378,6 +392,7 @@ def toPercentage(sectors_total):
     json_format['values'] = [round((row['current_value'] / total) * 100, 2) for row in sectors_total]
     json_format['labels'] = [row['sector'] for row in sectors_total]
     return [json_format]
+
 
 
 if __name__ == '__main__':
