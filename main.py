@@ -63,7 +63,7 @@ def portfolio():
     user = [session['user']]
 
     # Query for holdings
-    cur.execute('CALL portfolio(%s)', user)
+    cur.execute('SELECT * FROM portfolio(%s);', user)
     holdings = cur.fetchall()
 
     # Query for watchlist
