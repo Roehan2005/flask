@@ -30,7 +30,7 @@
             Symbol:
             <select name="symbol">
                 {% for company in companies %}
-                <option value="{{ company[0] }}">{{ company[0] }}</option>
+                <option value="{{ company.symbol }}">{{ company.symbol }}</option>
                 {% endfor %}
             </select>
             <br><br>

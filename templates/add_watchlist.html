@@ -24,15 +24,14 @@
 
 <body>
     <h2>
-        <form method="POST" action=''>
-            <br>
-            Select symbol:
-            <select name="symbol">
+        <form method="post" action="/submit_watchlist">
+            <label for="company">Select a Company:</label>
+            <select name="company_Symbol" id="company" required>
                 {% for company in companies %}
-                <option value="{{ company[0] }}">{{ company[0] }}</option>
+                    <option value="{{ company.symbol }}">{{ company.symbol }}</option>
                 {% endfor %}
             </select>
-            <input type="submit" value="Add">
+            <button type="submit">Add to Watchlist</button>
         </form>
     </h2>
     <h3><a href="portfolio.html">Go back!</a></h3>

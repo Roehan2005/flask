@@ -101,6 +101,7 @@ create EXTENSION IF NOT EXISTS pgcrypto;
 
 insert into user_profile values
 ('rewan', 'uni.rayone@gmail.com', 9800000001, encode(digest('rewan123', 'sha224'), 'hex')),
+('ROEHAN', 'uni.rayone@gmail.com', 9800000111, encode(digest('roehan123', 'sha224'), 'hex')),
 ('mahesh', 'uni@gmail.com', 9800000002, encode(digest('arewan123', 'sha224'), 'hex')),
 ('suman', 'uni1.rayone@gmail.com', 9800000003, encode(digest('rewan12345', 'sha224'), 'hex')),
 ('madhu', 'uni2.rayone@gmail.com', 9800000004, encode(digest('arewan123', 'sha224'), 'hex')),
@@ -161,6 +162,7 @@ insert into fundamental_report(symbol, report_as_of, EPS, ROE, book_value) value
 ('HIH', '77/78_q2', 55, 18, 200),
 ('BIH', '77/78_q3', 36, 20, 220),
 ('BIH', '77/78_q2', 35, 21, 200);
+
 
 insert into technical_signals(symbol, RSI, volume, ADX, MACD) values 
 ('KBL', 65.1, 451000, 33.3, 'bull'), 

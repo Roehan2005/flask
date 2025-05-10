@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, session
+from flask import Flask, render_template, request, session,redirect,url_for
 from datetime import timedelta
 import hashlib
 import yaml
@@ -8,7 +8,7 @@ from psycopg2.extras import RealDictCursor
 app = Flask(__name__)
 
 # Load database configuration from YAML
-with open(r'/Users/roehit/Documents/GitHub/flask/db.yaml', 'r') as file:
+with open(r'C:\Users\ranga\Desktop\new dbms\flask\db.yaml', 'r') as file:
     db = yaml.load(file, Loader=yaml.FullLoader)
 
 app.secret_key = db['secret_key']
@@ -70,7 +70,7 @@ def portfolio():
     query_watchlist = '''
     select symbol, LTP, PC, round((LTP-PC)::numeric, 2) AS CH, round((((LTP-PC)/PC)*100)::numeric, 2) AS CH_percent from watchlist
     natural join company_price
-    where username = 'suman'
+    where username =  %s
     order by (symbol);
     '''
     cur.execute(query_watchlist, user)
@@ -150,23 +150,41 @@ def add_transaction():
 
     if request.method == 'POST':
         transaction_details = request.form
-        symbol = transaction_details['symbol']
-        date = transaction_details['transaction_date']
-        transaction_type = transaction_details['transaction_type']
-        quantity = float(transaction_details['quantity'])
-        rate = float(transaction_details['rate'])
+        symbol = transaction_details.get('symbol')
+        date = transaction_details.get('transaction_date')
+        transaction_type = transaction_details.get('transaction_type')
+        quantity = transaction_details.get('quantity')
+        rate = transaction_details.get('rate')
+
+        # Log the received form data for debugging
+        print(f"Received symbol: {symbol}, date: {date}, transaction type: {transaction_type}, quantity: {quantity}, rate: {rate}")
+
+        # Handle potential errors if data is missing or invalid
+        try:
+            quantity = float(quantity)
+            rate = float(rate)
+        except ValueError:
+            print("Error: Invalid quantity or rate")
+            return "Invalid quantity or rate values"
+
+        # Adjust quantity for 'Sell' transactions
         if transaction_type == 'Sell':
             quantity = -quantity
 
-        query = '''INSERT INTO transaction_history(username, symbol, transaction_date, quantity, rate) 
-                   VALUES (%s, %s, %s, %s, %s)'''
-        values = [session['user'], symbol, date, quantity, rate]
-        cur.execute(query, values)
-        conn.commit()
+        # Insert into transaction_history table
+        try:
+            query = '''INSERT INTO transaction_history(username, symbol, transaction_date, quantity, rate) 
+                       VALUES (%s, %s, %s, %s, %s)'''
+            values = [session['user'], symbol, date, quantity, rate]
+            cur.execute(query, values)
+            conn.commit()
+            print("Transaction added successfully.")
+        except Exception as e:
+            print(f"Error inserting transaction: {e}")
+            return f"Error inserting transaction: {e}"
 
     conn.close()
     return render_template('add_transaction.html', companies=companies)
-
 
 @app.route('/add_watchlist.html', methods=['GET', 'POST'])
 def add_watchlist():
@@ -178,22 +196,52 @@ def add_watchlist():
    SELECT symbol from company_profile
 where symbol not in
 (select symbol from watchlist
-where username = 'rewan');
+where username = %s);
     '''
-    user = [session['user']]
-    cur.execute(query_companies, user)
+    user = session['user']
+    cur.execute(query_companies, (user,))
     companies = cur.fetchall()
 
     if request.method == 'POST':
         watchlist_details = request.form
-        symbol = watchlist_details['symbol']
-        query = '''INSERT INTO watchlist(username, symbol) VALUES (%s, %s)'''
-        values = [session['user'], symbol]
-        cur.execute(query, values)
-        conn.commit()
+        symbol = watchlist_details['company_Symbol']
+
+        # Check if the company is already in the watchlist
+        check_query = '''SELECT * FROM watchlist WHERE username = %s AND symbol = %s'''
+        cur.execute(check_query, (user, symbol))
+        existing_watchlist = cur.fetchone()
+
+        if existing_watchlist:
+            # Handle the case where the symbol is already in the user's watchlist
+            flash("This company is already in your watchlist.", "warning")
+        else:
+            # Insert the company into the watchlist if not already present
+            insert_query = '''INSERT INTO watchlist(username, symbol) VALUES (%s, %s)'''
+            cur.execute(insert_query, (user, symbol))
+            conn.commit()
+            flash("Company added to your watchlist!", "success")
 
     conn.close()
     return render_template('add_watchlist.html', companies=companies)
+
+@app.route('/submit_watchlist', methods=['POST'])
+def submit_watchlist():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    # Get the selected symbol from the form
+    company_symbol = request.form['company_Symbol']
+    
+    # Insert the company symbol into the user's watchlist
+    query = '''INSERT INTO watchlist(username, symbol) VALUES (%s, %s)'''
+    values = [session['user'], company_symbol]
+    cur.execute(query, values)
+    conn.commit()
+    
+    conn.close()
+    
+    return redirect(url_for('add_watchlist'))  # Redirect back to the add_watchlist page
+
 
 
 @app.route('/stockprice.html')
@@ -211,7 +259,7 @@ order by symbol;
         query = '''
         SELECT symbol, LTP, PC, ROUND((LTP-PC), 2) AS CH, ROUND(((LTP-PC)/PC)*100, 2) AS CH_percent 
         FROM company_price
-        WHERE symbol = %s
+        WHERE symbol = 'suman'
         '''
         cur.execute(query, [company])
 
