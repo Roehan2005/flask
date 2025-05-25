@@ -2,6 +2,3 @@
 Technologies used currently: 
 Flask, HTML, CSS, Bootstrap, JavaScript, POSTGRES SQL
 
-# Demo:
-![Demo](Demo1.gif)
-![Demo](Demo2.gif)
